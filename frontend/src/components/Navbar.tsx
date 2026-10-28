@@ -2,13 +2,11 @@ import React from 'react';
 import { 
   Building2, 
   Sparkles, 
-  RotateCcw, 
   MapPin, 
   Users,
   ShieldAlert
 } from 'lucide-react';
 import { City, OpsMember, SUPPORTED_CITIES } from '../types';
-import { resetToDemoData } from '../utils/storage';
 
 interface NavbarProps {
   selectedCity: City | 'All';
@@ -93,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onChange={(e) => setSelectedOps(e.target.value)}
                 className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer pr-1"
               >
-                <option value="All">All 5 Leads</option>
+                <option value="All">All Leads</option>
                 {opsTeam.map((m) => {
                   const count = activeMoveCountsByLead[m.name] ?? m.activeMovesCount;
                   return (
@@ -133,14 +131,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               + New Relocation
             </button>
 
-            {/* Demo Reset */}
-            <button
-              onClick={resetToDemoData}
-              title="Reset to fresh demo data"
-              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
           </div>
 
         </div>

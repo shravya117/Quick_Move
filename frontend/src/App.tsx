@@ -16,21 +16,15 @@ import { NewMoveModal } from './components/NewMoveModal';
 import { EditMoveModal } from './components/EditMoveModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 
-import { City, Relocation, Task, Issue, RelocationPhase, SUPPORTED_CITIES } from './types';
-import { OPS_TEAM } from './data/mockData';
-import { 
-  loadRelocations, 
-  saveRelocations, 
-  loadTasks, 
-  saveTasks, 
-  loadIssues, 
-  saveIssues 
-} from './utils/storage';
+import { City, Relocation, Task, Issue, RelocationPhase, SUPPORTED_CITIES, OpsMember } from './types';
+import { api } from './utils/api';
 
 export const App: React.FC = () => {
-  const [relocations, setRelocations] = useState<Relocation[]>(loadRelocations);
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
-  const [issues, setIssues] = useState<Issue[]>(loadIssues);
+  const [relocations, setRelocations] = useState<Relocation[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   // Global Filter States
   const [selectedCity, setSelectedCity] = useState<City | 'All'>('All');
@@ -47,29 +41,53 @@ export const App: React.FC = () => {
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isNewMoveOpen, setIsNewMoveOpen] = useState(false);
 
-  // Sync state changes with localStorage
-  useEffect(() => {
-    saveRelocations(relocations);
+  const opsTeam = useMemo<OpsMember[]>(() => {
+    const names = new Set(relocations.map((move) => move.assignedOps).filter(Boolean));
+    return Array.from(names).map((name) => ({
+      id: name,
+      name,
+      activeMovesCount: relocations.filter((move) => move.assignedOps === name && move.currentPhase !== 'Completed').length,
+      phone: '',
+      cities: Array.from(new Set(relocations.filter((move) => move.assignedOps === name).map((move) => move.toCity))),
+    }));
   }, [relocations]);
 
   useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [moves, loadedTasks, loadedIssues] = await Promise.all([
+          api.getRelocations(),
+          api.getTasks(),
+          api.getIssues(),
+        ]);
+        setRelocations(moves);
+        setTasks(loadedTasks);
+        setIssues(loadedIssues);
+        setDataError(null);
+      } catch (error) {
+        setDataError(error instanceof Error ? error.message : 'Unable to load operational data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadData();
+  }, []);
 
-  useEffect(() => {
-    saveIssues(issues);
-  }, [issues]);
+  const reportError = (error: unknown) => {
+    setDataError(error instanceof Error ? error.message : 'The operation failed');
+  };
 
   // Compute live active move counts per ops coordinator
   const activeMoveCountsByLead = useMemo(() => {
     const counts: Record<string, number> = {};
-    OPS_TEAM.forEach(member => {
+    opsTeam.forEach(member => {
       counts[member.name] = relocations.filter(
         m => m.assignedOps === member.name && m.currentPhase !== 'Completed'
       ).length;
     });
     return counts;
-  }, [relocations]);
+  }, [opsTeam, relocations]);
 
   // Extract any unique non-hub cities present in active moves
   const customCities = useMemo(() => {
@@ -108,94 +126,90 @@ export const App: React.FC = () => {
   const criticalIssuesCount = filteredIssues.filter(i => i.status !== 'resolved' && (i.severity === 'critical' || i.severity === 'high')).length;
 
   // Handlers
-  const handleToggleTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        const nextStatus = t.status === 'completed' ? 'pending' : 'completed';
-        return { ...t, status: nextStatus };
-      }
-      return t;
-    }));
+  const handleToggleTask = async (taskId: string) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) return;
+    try {
+      const updated = await api.updateTask({ ...task, status: task.status === 'completed' ? 'pending' : 'completed' });
+      setTasks(prev => prev.map(item => item.id === taskId ? updated : item));
+    } catch (error) { reportError(error); }
   };
 
-  const handleAddTask = (newTaskData: Omit<Task, 'id'>) => {
-    const newTask: Task = {
-      ...newTaskData,
-      id: `TSK-${Math.floor(200 + Math.random() * 800)}`,
-    };
-    setTasks(prev => [newTask, ...prev]);
+  const handleAddTask = async (newTaskData: Omit<Task, 'id'>) => {
+    try {
+      const newTask = await api.createTask(newTaskData);
+      setTasks(prev => [newTask, ...prev]);
+    } catch (error) { reportError(error); }
   };
 
-  const handleResolveIssue = (issueId: string) => {
-    setIssues(prev => prev.map(i => {
-      if (i.id === issueId) {
-        return { ...i, status: 'resolved' };
-      }
-      return i;
-    }));
+  const handleResolveIssue = async (issueId: string) => {
+    const issue = issues.find((item) => item.id === issueId);
+    if (!issue) return;
+    try {
+      const updated = await api.updateIssue({ ...issue, status: 'resolved' });
+      setIssues(prev => prev.map(item => item.id === issueId ? updated : item));
+    } catch (error) { reportError(error); }
   };
 
-  const handleReopenIssue = (issueId: string) => {
-    setIssues(prev => prev.map(i => {
-      if (i.id === issueId) {
-        return { ...i, status: 'open' };
-      }
-      return i;
-    }));
+  const handleReopenIssue = async (issueId: string) => {
+    const issue = issues.find((item) => item.id === issueId);
+    if (!issue) return;
+    try {
+      const updated = await api.updateIssue({ ...issue, status: 'open' });
+      setIssues(prev => prev.map(item => item.id === issueId ? updated : item));
+    } catch (error) { reportError(error); }
   };
 
-  const handleAddIssue = (newIssueData: Omit<Issue, 'id'>) => {
-    const newIssue: Issue = {
-      ...newIssueData,
-      id: `ISS-${Math.floor(100 + Math.random() * 900)}`,
-    };
-    setIssues(prev => [newIssue, ...prev]);
+  const handleAddIssue = async (newIssueData: Omit<Issue, 'id'>) => {
+    try {
+      const newIssue = await api.createIssue(newIssueData);
+      setIssues(prev => [newIssue, ...prev]);
+    } catch (error) { reportError(error); }
   };
 
-  const handleUpdatePhase = (moveId: string, newPhase: RelocationPhase) => {
-    setRelocations(prev => prev.map(m => {
-      if (m.id === moveId) {
-        return { 
-          ...m, 
-          currentPhase: newPhase,
-          notes: [`Phase updated to "${newPhase}" on ${new Date().toLocaleDateString()}`, ...m.notes]
-        };
-      }
-      return m;
-    }));
-    if (selectedMove && selectedMove.id === moveId) {
-      setSelectedMove(prev => prev ? { ...prev, currentPhase: newPhase } : null);
-    }
+  const handleUpdatePhase = async (moveId: string, newPhase: RelocationPhase) => {
+    const move = relocations.find((item) => item.id === moveId);
+    if (!move) return;
+    const updatedMove = { ...move, currentPhase: newPhase, notes: [`Phase updated to "${newPhase}" on ${new Date().toLocaleDateString()}`, ...move.notes] };
+    try {
+      const saved = await api.updateRelocation(updatedMove);
+      setRelocations(prev => prev.map(item => item.id === moveId ? saved : item));
+      setSelectedMove(prev => prev?.id === moveId ? saved : prev);
+    } catch (error) { reportError(error); }
   };
 
-  const handleAddNote = (moveId: string, noteText: string) => {
-    setRelocations(prev => prev.map(m => {
-      if (m.id === moveId) {
-        return { ...m, notes: [noteText, ...m.notes] };
-      }
-      return m;
-    }));
-    if (selectedMove && selectedMove.id === moveId) {
-      setSelectedMove(prev => prev ? { ...prev, notes: [noteText, ...prev.notes] } : null);
-    }
+  const handleAddNote = async (moveId: string, noteText: string) => {
+    const move = relocations.find((item) => item.id === moveId);
+    if (!move) return;
+    try {
+      const saved = await api.updateRelocation({ ...move, notes: [noteText, ...move.notes] });
+      setRelocations(prev => prev.map(item => item.id === moveId ? saved : item));
+      setSelectedMove(prev => prev?.id === moveId ? saved : prev);
+    } catch (error) { reportError(error); }
   };
 
-  const handleAddRelocation = (newMove: Relocation) => {
-    setRelocations(prev => [newMove, ...prev]);
+  const handleAddRelocation = async (newMove: Relocation) => {
+    try {
+      const saved = await api.createRelocation(newMove);
+      setRelocations(prev => [saved, ...prev]);
+      setIsNewMoveOpen(false);
+    } catch (error) { reportError(error); }
   };
 
-  const handleUpdateRelocation = (updatedMove: Relocation) => {
-    setRelocations(prev => prev.map(m => m.id === updatedMove.id ? updatedMove : m));
-    if (selectedMove && selectedMove.id === updatedMove.id) {
-      setSelectedMove(updatedMove);
-    }
+  const handleUpdateRelocation = async (updatedMove: Relocation) => {
+    try {
+      const saved = await api.updateRelocation(updatedMove);
+      setRelocations(prev => prev.map(item => item.id === saved.id ? saved : item));
+      setSelectedMove(prev => prev?.id === saved.id ? saved : prev);
+    } catch (error) { reportError(error); }
   };
 
-  const handleDeleteRelocation = (moveId: string) => {
-    setRelocations(prev => prev.filter(m => m.id !== moveId));
-    if (selectedMove && selectedMove.id === moveId) {
-      setSelectedMove(null);
-    }
+  const handleDeleteRelocation = async (moveId: string) => {
+    try {
+      await api.deleteRelocation(moveId);
+      setRelocations(prev => prev.filter(item => item.id !== moveId));
+      setSelectedMove(prev => prev?.id === moveId ? null : prev);
+    } catch (error) { reportError(error); }
   };
 
   const handleSelectMoveForDetails = (move: Relocation) => {
@@ -217,7 +231,7 @@ export const App: React.FC = () => {
         setSelectedCity={setSelectedCity}
         selectedOps={selectedOps}
         setSelectedOps={setSelectedOps}
-        opsTeam={OPS_TEAM}
+        opsTeam={opsTeam}
         onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
         onOpenNewMove={() => setIsNewMoveOpen(true)}
         overdueCount={overdueTasksCount}
@@ -228,6 +242,12 @@ export const App: React.FC = () => {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {dataError && (
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
+            {dataError}
+          </div>
+        )}
+        {isLoading && <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Loading live operational data...</div>}
         
         {/* Banner with Context / City filter status */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-sm">
@@ -259,6 +279,7 @@ export const App: React.FC = () => {
           </div>
         </div>
 
+        {!isLoading && <>
         {/* 4 Summary Stats Cards */}
         <StatsCards
           activeMovesCount={activeMovesCount}
@@ -281,7 +302,7 @@ export const App: React.FC = () => {
             }`}
           >
             <Truck className="w-4 h-4" />
-            <span>Active Relocations ({filteredRelocations.length})</span>
+            <span>Relocation Pipeline ({filteredRelocations.length})</span>
           </button>
 
           <button
@@ -328,8 +349,10 @@ export const App: React.FC = () => {
             onOpenQuickWhatsApp={handleQuickWhatsApp}
             onEditMove={(move) => setEditingMove(move)}
             onDeleteMove={(move) => setDeletingMove(move)}
+            onCreateRelocation={() => setIsNewMoveOpen(true)}
           />
         )}
+        </>}
 
         {activeTab === 'tasks' && (
           <TaskCenter

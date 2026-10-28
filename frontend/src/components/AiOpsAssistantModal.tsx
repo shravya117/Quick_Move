@@ -12,6 +12,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Relocation, Task, Issue, City, TaskCategory } from '../types';
+import { api } from '../utils/api';
 
 interface AiOpsAssistantModalProps {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
     customerMatched: string;
     city: City;
     category: TaskCategory;
-    severity: 'critical' | 'high' | 'medium';
+    severity: 'critical' | 'high' | 'medium' | 'low';
     rootCause: string;
     actionPlan: string;
     draftResponse: string;
@@ -47,6 +48,7 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
 
   const [taskAddedToast, setTaskAddedToast] = useState(false);
   const [blockerAddedToast, setBlockerAddedToast] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
 
   // Mode 2: Composer
   const [selectedRelocationId, setSelectedRelocationId] = useState(relocations[0]?.id || '');
@@ -73,50 +75,23 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
     }
   ];
 
-  const handleParseMessage = () => {
+  const handleParseMessage = async () => {
     if (!rawMessageInput.trim()) return;
-
-    const lower = rawMessageInput.toLowerCase();
-    
-    // Heuristic AI Triage engine tailored to QuickMove operations
-    if (lower.includes('prestige') || lower.includes('guard') || lower.includes('deposit') || lower.includes('gate')) {
-      setParsedResult({
-        customerMatched: 'Aditya & Ritu Mehra',
-        targetRelocationId: 'REL-2026-081',
-        city: 'Bengaluru',
-        category: 'society_gatepass',
-        severity: 'critical',
-        rootCause: 'Security guard strictly enforcing physical counter-signed lift deposit slip + 6 PM cutoff curfew.',
-        actionPlan: '1. Call Estate Manager Mr. Kulkarni directly at +91 98450 11922\n2. Issue QuickMove Corporate Escrow Guarantee\n3. Pre-book tomorrow 9:30 AM reserve elevator slot if 6 PM deadline missed.',
-        draftResponse: 'Dear Estate Management (Prestige Lakeside), QuickMove guarantees full liability of the ₹15,000 lift deposit for Flat 1402 under ref #QM-BLR-8819. Driver KA-03-D-4412 is carrying official company indemnity. Kindly authorize gate entry.'
-      });
-    } else if (lower.includes('tempo') || lower.includes('12000') || lower.includes('pali hill') || lower.includes('container')) {
-      setParsedResult({
-        customerMatched: 'Saurabh Joshi',
-        targetRelocationId: 'REL-2026-089',
-        city: 'Mumbai',
-        category: 'movers',
-        severity: 'critical',
-        rootCause: 'Large container truck cannot enter narrow Bandra bylanes; driver exploiting access limitation for ₹12,000 cash demand.',
-        actionPlan: '1. Instruct customer NOT to pay cash\n2. Route 2 QuickMove partner Tata Ace mini-tempos from Santacruz hub (flat rate ₹3,800)\n3. Issue warning notice to Mumbai Star Packers under Section 4.2 of vendor contract.',
-        draftResponse: 'Hi Saurabh, please do not pay any extra cash. QuickMove ops has dispatched 2 dedicated mini-tempos from our Santacruz depot. The vendor is being penalized as per contract.'
-      });
-    } else {
-      setParsedResult({
-        customerMatched: 'Kavita Sundaram',
-        targetRelocationId: 'REL-2026-084',
-        city: 'Pune',
-        category: 'utilities',
-        severity: 'high',
-        rootCause: 'Prior resident unpaid bill blocking consumer number transfer at Hadapsar subdivision.',
-        actionPlan: '1. Verify previous arrears on Mahavitaran web portal\n2. Request landlord to offset ₹3,410 against next maintenance settlement\n3. File expedited grievance on Urja portal.',
-        draftResponse: 'Dear Landlord/Broker, MSEDCL inspection flagged prior unpaid electricity dues of ₹3,410 for Amanora 904. To prevent connection disconnect for tenant Kavita, please authorize QuickMove to clear this from deposit adjustment.'
-      });
+    try {
+      setIsParsing(true);
+      const result = await api.parseMessage(rawMessageInput, relocations);
+      setParsedResult({ ...result, targetRelocationId: result.targetRelocationId ?? '' });
+    } catch (error) {
+      setParsedResult(null);
+      window.alert(error instanceof Error ? error.message : 'Groq AI is unavailable');
+    } finally {
+      setIsParsing(false);
     }
   };
 
   const handleCreateTaskFromAi = () => {
-    if (!parsedResult || !onAddTask) return;
+    if (!parsedResult || !parsedResult.targetRelocationId || !onAddTask) return;
+    if (!window.confirm('Confirm adding this AI-generated task to the operations queue?')) return;
 
     onAddTask({
       relocationId: parsedResult.targetRelocationId,
@@ -137,7 +112,8 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
   };
 
   const handleCreateBlockerFromAi = () => {
-    if (!parsedResult || !onAddIssue) return;
+    if (!parsedResult || !parsedResult.targetRelocationId || !onAddIssue) return;
+    if (!window.confirm('Confirm logging this AI-generated blocker?')) return;
 
     onAddIssue({
       relocationId: parsedResult.targetRelocationId,

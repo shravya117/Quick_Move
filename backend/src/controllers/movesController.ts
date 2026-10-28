@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { supabase } from '../services/supabase';
 import { Move } from '../types';
 
+const toRelocation = (row: Record<string, any>): Record<string, any> => ({
+  ...(row.payload ?? {}),
+  id: row.id,
+  currentPhase: row.current_phase ?? row.payload?.currentPhase ?? 'Apartment Shortlist',
+});
+
 // GET /api/moves
 export const getMoves = async (_req: Request, res: Response): Promise<void> => {
   const { data, error } = await supabase
@@ -13,7 +19,7 @@ export const getMoves = async (_req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: error.message });
     return;
   }
-  res.json(data);
+  res.json((data ?? []).map(toRelocation));
 };
 
 // GET /api/moves/:id
@@ -30,27 +36,29 @@ export const getMoveById = async (req: Request, res: Response): Promise<void> =>
     res.status(404).json({ error: 'Move not found' });
     return;
   }
-  res.json(data);
+  res.json(toRelocation(data));
 };
 
 // POST /api/moves
 export const createMove = async (req: Request, res: Response): Promise<void> => {
-  const body: Partial<Move> = req.body;
+  const body = req.body as Partial<Move> & Record<string, any>;
 
-  if (!body.client_name || !body.origin_city || !body.destination_city || !body.move_date) {
-    res.status(400).json({ error: 'Missing required fields: client_name, origin_city, destination_city, move_date' });
+  if (!body.id || !body.customerName || !body.fromCity || !body.toCity || !body.targetMoveDate || !body.currentPhase) {
+    res.status(400).json({ error: 'Missing required relocation fields' });
     return;
   }
 
   const newMove = {
-    client_name: body.client_name,
-    origin_city: body.origin_city,
-    destination_city: body.destination_city,
-    move_date: body.move_date,
-    status: body.status || 'Planning',
-    priority: body.priority || 'Medium',
-    assigned_team: body.assigned_team || 'Unassigned',
-    notes: body.notes || '',
+    id: body.id,
+    client_name: body.customerName,
+    origin_city: body.fromCity,
+    destination_city: body.toCity,
+    move_date: body.targetMoveDate,
+    status: body.currentPhase,
+    priority: body.riskScore,
+    assigned_team: body.assignedOps,
+    current_phase: body.currentPhase,
+    payload: body,
   };
 
   const { data, error } = await supabase
@@ -63,17 +71,34 @@ export const createMove = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ error: error.message });
     return;
   }
-  res.status(201).json(data);
+  res.status(201).json(toRelocation(data));
 };
 
 // PUT /api/moves/:id
 export const updateMove = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const updates: Partial<Move> = req.body;
+  const updates = req.body as Partial<Move> & Record<string, any>;
+  const { data: current, error: currentError } = await supabase.from('moves').select('payload').eq('id', id).single();
+  if (currentError) {
+    res.status(404).json({ error: 'Move not found' });
+    return;
+  }
+  const payload = { ...(current.payload ?? {}), ...updates, id };
 
   const { data, error } = await supabase
     .from('moves')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({
+      client_name: payload.customerName,
+      origin_city: payload.fromCity,
+      destination_city: payload.toCity,
+      move_date: payload.targetMoveDate,
+      status: payload.currentPhase,
+      priority: payload.riskScore,
+      assigned_team: payload.assignedOps,
+      current_phase: payload.currentPhase,
+      payload,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
     .select()
     .single();
@@ -82,7 +107,7 @@ export const updateMove = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ error: error.message });
     return;
   }
-  res.json(data);
+  res.json(toRelocation(data));
 };
 
 // DELETE /api/moves/:id

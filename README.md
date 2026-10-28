@@ -1,129 +1,163 @@
-# QuickMove AI Operations Hub
-### Intelligent Ground Coordination, Society Gate Pass & Moving Day Dispatch System
+# QuickMove Operations Hub
 
-> **Hiring Assignment:** AI Ops Engineer — QuickMove / StampMyVisa  
-> **Candidate Implementation:** Working Solution (Submission 2) + Strategic Map (Submission 1) + Build Log (Submission 3)  
-> **Target Scale:** 200+ moves/month growing 20% QoQ | 5 On-Ground Coordinators | 8 Core Metro Hubs | Zero Engineering Team
+An intelligent operational command center and coordination platform designed to manage and streamline end-to-end relocation logistics, gated society permissions, and ground team workflows across multi-city networks.
 
 ---
 
-## 🎯 Selected Workflow for Submission 2: Why This Workflow?
+## 📌 Project Overview
 
-From our end-to-end map of **16 interconnected operational workflows**, we selected and built a production-grade working tool for:
-
-### **Workflow #6 & #11: Gated Society Move-In Gate Pass, Lift NOC & Last-Mile Logistics Dispatch**  
-*(Supercharged by the **AI Ground Coordination Co-Pilot**)*
-
-### 1. The Core Bottleneck & Ground Reality
-In Indian metro cities (Bengaluru, Mumbai, Pune, Hyderabad, Gurgaon, Chennai), **over 60% of relocation disasters happen on Moving Day at the society entrance gate**:
-* **The Society Security Trap:** Management Committees (e.g. Prestige Lakeside in Bengaluru, Amanora in Pune, high-rises in Gurgaon) enforce rigid curfews (no truck entry after 6 PM, Sunday move-in bans) and demand ₹10,000–₹25,000 refundable lift deposits with landlord countersignatures.
-* **The NRI / Landlord Deadlock:** Landlords based in Singapore or the US take 12–18 hours to email signed approvals or verify utility OTPs, stalling the physical truck at the gate.
-* **The Narrow Lane & Extortion Trap:** In areas like Pali Hill (Mumbai) or Indiranagar (Bengaluru), 17ft container trucks cannot enter narrow bylanes. Unscrupulous drivers demand ₹10,000–₹12,000 spot cash for mini-tempo shuttles or threaten to dump goods roadside.
-* **The 5-Person Ops Chaos:** QuickMove’s 5 coordinators currently juggle **4 separate WhatsApp groups per relocation** (Customer, Mover Driver, Society Estate Office, Internal Ops). Panicked messages get buried in chaotic chat threads while trucks sit idle incurring ₹1,500/hour waiting penalties.
-
-### 2. Why This is the #1 Highest-Leverage Automation
-Unlike earlier phases (such as apartment shortlisting or document collection) which have a 24-to-48 hour buffer, **Moving Day has zero tolerance for delay**:
-* **Immediate Financial Impact:** Eliminates vendor detention fees and unauthorized tempo surcharges.
-* **Massive Time Savings:** Reduces coordinator firefighting from **3.5 hours per incident to under 60 seconds** via AI-assisted triage and pre-formatted WhatsApp broadcasts.
-* **Customer NPS Preservation:** Prevents families (often with infants or elderly parents) from being stranded on the street without power or furniture.
+**QuickMove Operations Hub** unifies fragmented operational channels—such as team chats, spreadsheets, and emails—into a single, real-time command dashboard. It provides ground operations coordinators with the tools needed to manage moves, monitor milestones, resolve on-ground roadblocks, and maintain transparent communication with customers, logistics vendors, and property estate managers.
 
 ---
 
-## 🚀 The Working Solution: System Architecture & Capabilities
+## 🔄 Core Project Workflow
 
-Built with **React 18, Vite, TypeScript, and Tailwind CSS**, the **QuickMove Operations Hub** gives non-technical ops leads an intuitive command center with zero engineering maintenance:
+The platform coordinates the complete lifecycle of a relocation through five synchronized operational stages:
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        QuickMove AI Ops Hub                            │
-├────────────────────┬────────────────────┬──────────────────────────────┤
-│  Pipeline Tracker  │   Task Command     │      Blockers & Failures     │
-│  - 8 Metro Hubs    │   - Overdue SLAs   │      - Society Gate NOCs     │
-│  - Non-Hub Alerts  │   - Due Today      │      - Mover Access Blocks   │
-│  - Risk Scoring    │   - Category Views │      - AI Action Plans       │
-└─────────┬──────────┴─────────┬──────────┴──────────────┬───────────────┘
-          │                    │                         │
-          ▼                    ▼                         ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   AI Ground Coordination Co-Pilot                      │
-│  1. Raw WhatsApp Message Triage (Driver/Customer/Guard Chat Parser)    │
-│  2. Root Cause & Immediate Severity Classification                    │
-│  3. 1-Click Injection into Active Tasks & Blocker Tickets             │
-│  4. Instant Resolution WhatsApp Drafts (Firm SLA / Empathetic / Urgent)│
-└────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           Relocation Lifecycle Workflow                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+  1. Intake & Routing Assessment
+     • Profile customer requirements, household volume, and target move dates.
+     • Check origin and destination hub coverage, applying operational network 
+       guidance for any non-hub routes.
+         │
+         ▼
+  2. Property & Gated Society Coordination
+     • Track lease readiness and society management committee regulations.
+     • Manage advance freight elevator reservations, move-in NOCs, and refundable 
+       lift deposits to prevent moving day delays.
+         │
+         ▼
+  3. Logistics & Moving Day Dispatch
+     • Coordinate logistics partners, truck sizing (e.g. 14ft/17ft containers vs. 
+       shuttle tempos for narrow bylanes), and arrival windows.
+     • Monitor transit status from origin packing through destination delivery.
+         │
+         ▼
+  4. Utilities Transfer & Documentation
+     • Oversee essential utility transfers (electricity meters, piped gas, optical 
+       fiber broadband) ahead of move-in.
+     • Verify lease agreements and required address change documentation.
+         │
+         ▼
+  5. Ground Issue Resolution & AI Co-Pilot
+     • Process unstructured messages from drivers, security teams, or customers.
+     • Rapidly triage roadblocks, determine root causes, and dispatch pre-formatted 
+       contingency updates with zero delay.
 ```
 
-### Key Functional Features
+---
 
-#### 1. AI WhatsApp Message Triage & Parser
-* Paste raw, chaotic Hindi/English messages from truck drivers, security guards, or customers.
-* **Automated Extraction:** Matches customer ID, destination city, failure category, ground severity, and identifies the root cause.
-* **Direct Action Execution:** Coordinators can click **"Add Action Plan to Task Center"** or **"Log as Active Blocker Ticket"** with a single click, immediately updating the team's operational board.
+## ⚡ Key Features
 
-#### 2. Instant WhatsApp Resolution Composer
-* Generates legal, professional, or empathetic WhatsApp communications tailored to the recipient:
-  * **Estate Manager / Society:** QuickMove Corporate Escrow Guarantees for lift deposits.
-  * **Logistics Vendor:** SLA penalty notices for delayed transit and GPS tracking demands.
-  * **Landlord:** Fast 1-click digital OTP authorization links for utility meter transfers.
+### 1. Centralized Pipeline Tracker
+* **Multi-City Hub Coverage:** Full tracking across major metro hubs with flexible support for custom origin and destination routes.
+* **Network Guidance:** Automatic indicators for out-of-network destinations highlighting where logistics or services require manual partner confirmation.
+* **Risk Scoring Engine:** Real-time visibility into high-risk moves facing potential society curfew blocks, vehicle access limits, or missing paperwork.
 
-#### 3. Intelligent Pipeline & Multi-City Routing
-* Supports QuickMove's 8 core metro hubs (**Bengaluru, Pune, Mumbai, Delhi-NCR, Hyderabad, Chennai, Ahmedabad, Kolkata**).
-* **Non-Hub Network Safeguard:** If an out-of-network city is selected (via the *Other* option), the system flags the move with an **Operational Warning Banner** and elevated risk status, alerting the team that ground logistics and utility SLAs require manual third-party partner verification before committing to the customer.
+### 2. Task Command Center
+* **Milestone Tracking:** Categorized tracking across Society Permissions, Logistics, Utilities, Documentation, and Post-Move milestones.
+* **Smart Filtering:** View tasks by *All*, *Due Today*, *Overdue*, and *Done*.
+* **Quick Actions:** Instant status toggles and rapid task creation to keep teams synchronized.
 
-#### 4. Task Command Center & Blocker Board
-* **Task Center:** Filters by *Overdue*, *Due Today*, *All*, and *Done*. Interactive checkboxes update progress and persist in `localStorage`.
-* **Blocker Board:** Tracks high-severity roadblocks with AI-recommended contingency strategies and includes an **"Active Blockers" vs. "Resolved History"** toggle with full reopen/undo capabilities.
+### 3. Roadblock & Issue Management
+* **Active Blocker Board:** Dedicated tracking for critical on-ground failures (e.g., security gate pass rejections, lane access restrictions, utility approval holds).
+* **AI-Assisted Resolution:** Immediate recommended contingency steps and ready-to-copy communication drafts for landlords, vendors, or estate committees.
+* **Resolution History:** Track resolved issues with the ability to reopen or review previous incident solutions.
 
-#### 5. Full Pipeline CRUD (Edit & Delete Safeguards)
-* **Edit Modal:** Update routing, moving dates, society gate pass status, vehicle sizing, and assigned ops leads on the fly.
-* **Delete Safeguard:** Confirmation modal prevents accidental deletion of active customer moves.
+### 4. Operations AI Co-Pilot
+* **Chat & Message Parser:** Ingests raw, unstructured messages from drivers or field personnel, categorizes severity, and pinpoints the underlying issue.
+* **Direct Task & Ticket Injection:** Convert parsed recommendations into active tasks or blocker tickets in one click.
+* **Custom Communication Composer:** Generate clear, professional, or time-sensitive messages tailored for different stakeholders.
+
+### 5. Full Pipeline Editing & Safeguards
+* **Record Editing:** Update customer parameters, route details, society policies, or vendor allocation directly from the pipeline table or detail view.
+* **Deletion Safeguards:** Confirmation modal prevents accidental data loss.
 
 ---
 
-## 📊 Workflow Health Metrics & Operational Targets
+## 🛠️ Technology Stack
 
-| Metric | Target | Red Alert Threshold | Monitored In Tool |
-| :--- | :--- | :--- | :--- |
-| **Society Gate Pass Approval Rate** | 100% approved 24h prior to move | Gate pass pending on Move Day | ✅ Yes (Visual Badge) |
-| **Moving Day On-Time Arrival** | ±30 mins of scheduled slot | > 2 hours delay | ✅ Yes (SLA Status) |
-| **Overdue Milestone Ratio** | < 5% of all active tasks | > 10% tasks overdue | ✅ Yes (KPI Stat Card) |
-| **Moving Day Incident Resolution Time** | < 15 minutes to contingency dispatch | > 45 minutes | ✅ Yes (AI Co-Pilot) |
-| **Active Moves per Coordinator** | 20–25 moves/lead | > 35 moves/lead | ✅ Yes (Navbar Load Tracker) |
+* **Frontend Framework:** React 18 with TypeScript
+* **Build Tool:** Vite
+* **Styling:** Tailwind CSS with responsive layout and modern typography
+* **Icons:** Lucide React
+* **Data Storage:** Client-side persistence using `localStorage` for responsive, zero-latency state management
 
 ---
 
-## 🛠️ Quick Start (Run Locally)
+## 🚀 Getting Started
 
 ### Prerequisites
-* **Node.js:** v18.0.0 or higher
-* **Package Manager:** npm or pnpm
+* [Node.js](https://nodejs.org/) (version 18.0.0 or higher recommended)
+* npm, yarn, or pnpm
 
-### Installation & Launch
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/shravya117/QuickMove.git
+   cd QuickMove
+   ```
+
+2. **Install project dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the local development server:**
+   ```bash
+   npm run dev
+   ```
+   Open your browser and navigate to `http://localhost:3000`.
+
+### Production Build
+
+To compile and optimize the application for production:
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start the local Vite development server
-npm run dev
+npm run build
 ```
 
-Open your browser at **`http://localhost:3000`**.
-
-### Production Build & Preview
+To preview the production build locally:
 
 ```bash
-# Verify TypeScript types and compile production assets
-npm run build
-
-# Preview the production build locally
 npm run preview
 ```
 
 ---
 
-## 📂 Repository Contents
+## 📁 Project Structure
 
-* [`src/`](file:///c:/Users/asus/Desktop/AI-Ops/src): Complete React + TypeScript + Tailwind source code.
-* [`SUBMISSION_1_THE_MAP.md`](file:///c:/Users/asus/Desktop/AI-Ops/SUBMISSION_1_THE_MAP.md): Detailed system map of **16 granular workflows**, top 3 automations ranked, health metrics, and non-obvious failure modes.
-* [`SUBMISSION_3_BUILD_LOG.md`](file:///c:/Users/asus/Desktop/AI-Ops/SUBMISSION_3_BUILD_LOG.md): Complete prompt history, problem decomposition, AI critique, sandboxing pivots, and feature iteration logs.
+```
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # Reusable UI components & modals
+│   │   ├── Navbar.tsx              # Top navigation & global city/lead filters
+│   │   ├── StatsCards.tsx          # Key performance metric overview cards
+│   │   ├── MovesTable.tsx          # Interactive pipeline table with search & filters
+│   │   ├── TaskCenter.tsx          # Task execution and milestone tracker
+│   │   ├── IssueBlockerBoard.tsx   # Critical blocker and failure tracker
+│   │   ├── MoveDetailModal.tsx     # Comprehensive deep-dive drawer per move
+│   │   ├── AiOpsAssistantModal.tsx # AI operations co-pilot & message parser
+│   │   ├── NewMoveModal.tsx        # New customer move intake form
+│   │   ├── EditMoveModal.tsx       # Move record editing modal
+│   │   └── DeleteConfirmModal.tsx  # Safety confirmation dialog for deletion
+│   ├── data/               # Default pipeline and demonstration datasets
+│   ├── types/              # TypeScript interfaces and domain models
+│   ├── utils/              # Storage management and helper utilities
+│   ├── App.tsx             # Root dashboard container and state orchestration
+│   └── main.tsx            # Application entry point
+├── package.json
+└── vite.config.ts
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

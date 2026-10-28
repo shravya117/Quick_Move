@@ -80,13 +80,13 @@ The platform coordinates the complete lifecycle of a relocation through five syn
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Tech Stack
 
-* **Frontend Framework:** React 18 with TypeScript
-* **Build Tool:** Vite
-* **Styling:** Tailwind CSS with responsive layout and modern typography
-* **Icons:** Lucide React
-* **Data Storage:** Client-side persistence using `localStorage` for responsive, zero-latency state management
+* **React 18**
+* **TypeScript**
+* **Vite**
+* **Tailwind CSS**
+* **Lucide React**
 
 ---
 
@@ -94,14 +94,14 @@ The platform coordinates the complete lifecycle of a relocation through five syn
 
 ### Prerequisites
 * [Node.js](https://nodejs.org/) (version 18.0.0 or higher recommended)
-* npm, yarn, or pnpm
+* npm
 
 ### Installation
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/shravya117/QuickMove.git
-   cd QuickMove
+   git clone https://github.com/shravya117/Quick_Move.git
+   cd Quick_Move
    ```
 
 2. **Install project dependencies:**
@@ -155,9 +155,3 @@ npm run preview
 ├── package.json
 └── vite.config.ts
 ```
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).

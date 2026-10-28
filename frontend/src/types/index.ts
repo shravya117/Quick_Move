@@ -83,6 +83,14 @@ export interface Task {
 
 export type IssueSeverity = 'critical' | 'high' | 'medium' | 'low';
 export type IssueStatus = 'open' | 'in_progress' | 'resolved';
+export type IssueCategory =
+  | 'society_gatepass'
+  | 'documentation'
+  | 'movers'
+  | 'utilities'
+  | 'transport_vehicle'
+  | 'payment'
+  | 'other';
 
 export interface Issue {
   id: string;
@@ -93,9 +101,13 @@ export interface Issue {
   description: string;
   severity: IssueSeverity;
   status: IssueStatus;
-  category: TaskCategory;
+  category: IssueCategory;
   reportedAt: string;
+  reportedBy?: string;
   assignedTo: string;
+  resolutionNotes?: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
   suggestedAiAction?: string;
   suggestedWhatsAppMsg?: string;
 }

@@ -8,15 +8,16 @@ import {
   Check, 
   Search
 } from 'lucide-react';
-import { Task, TaskCategory, TaskPriority } from '../types';
+import { Relocation, Task, TaskCategory, TaskPriority } from '../types';
 
 interface TaskCenterProps {
   tasks: Task[];
   onToggleTask: (taskId: string) => void;
-  onAddTask: (task: Omit<Task, 'id'>) => void;
+  onAddTask: (task: Omit<Task, 'id'>) => Promise<void>;
   taskFilter: 'all' | 'overdue' | 'today' | 'completed';
   setTaskFilter: (filter: 'all' | 'overdue' | 'today' | 'completed') => void;
   opsLeads: string[];
+  relocations: Relocation[];
 }
 
 export const TaskCenter: React.FC<TaskCenterProps> = ({
@@ -26,6 +27,7 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
   taskFilter,
   setTaskFilter,
   opsLeads,
+  relocations,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [taskSearch, setTaskSearch] = useState('');
@@ -33,8 +35,8 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
 
   // New task form state
   const [newTitle, setNewTitle] = useState('');
-  const [newCustomer, setNewCustomer] = useState('');
-  const [newCity, setNewCity] = useState('Bengaluru');
+  const [selectedRelocationId, setSelectedRelocationId] = useState<string | null>(null);
+  const [relocationError, setRelocationError] = useState('');
   const [newCategory, setNewCategory] = useState<TaskCategory>('society_gatepass');
   const [newPriority, setNewPriority] = useState<TaskPriority>('high');
   const [newDueDate, setNewDueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -47,6 +49,14 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
   }, [newAssignedTo, opsLeads]);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const selectedRelocation = relocations.find((relocation) => relocation.id === selectedRelocationId) ?? null;
+
+  useEffect(() => {
+    if (selectedRelocationId && !selectedRelocation) {
+      setSelectedRelocationId(null);
+      setRelocationError('The selected relocation is no longer available. Choose an existing relocation.');
+    }
+  }, [selectedRelocation, selectedRelocationId]);
 
   const filteredTasks = tasks.filter((task) => {
     // Status / date filters
@@ -102,25 +112,43 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
     return map[cat] || cat;
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+    if (!selectedRelocation) {
+      setRelocationError('Select an existing relocation before saving this task.');
+      return;
+    }
 
     const isPastDue = newDueDate < todayStr;
 
-    onAddTask({
-      relocationId: 'REL-MANUAL',
-      customerName: newCustomer || 'Direct Ops Task',
-      city: newCity as any,
-      title: newTitle,
-      category: newCategory,
-      dueDate: newDueDate,
-      status: isPastDue ? 'overdue' : 'pending',
-      priority: newPriority,
-      assignedTo: newAssignedTo,
-    });
+    try {
+      await onAddTask({
+        relocationId: selectedRelocation.id,
+        customerName: selectedRelocation.customerName,
+        city: selectedRelocation.toCity,
+        title: newTitle,
+        category: newCategory,
+        dueDate: newDueDate,
+        status: isPastDue ? 'overdue' : 'pending',
+        priority: newPriority,
+        assignedTo: newAssignedTo,
+      });
+    } catch (error) {
+      setRelocationError(error instanceof Error ? error.message : 'Unable to save the task');
+      return;
+    }
 
     setNewTitle('');
+    setSelectedRelocationId(null);
+    setRelocationError('');
+    setShowAddModal(false);
+  };
+
+  const resetNewTaskForm = () => {
+    setNewTitle('');
+    setSelectedRelocationId(null);
+    setRelocationError('');
     setShowAddModal(false);
   };
 
@@ -189,7 +217,10 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
           </div>
 
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setRelocationError('');
+              setShowAddModal(true);
+            }}
             className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -256,6 +287,7 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="text-[11px] font-mono font-medium text-slate-400">{task.id}</span>
                     <span className="text-xs font-bold text-slate-900">{task.customerName}</span>
+                    <span className="text-[10px] font-mono text-indigo-600">{task.relocationId}</span>
                     <span className="text-[11px] text-slate-500">({task.city})</span>
                     {getPriorityBadge(task.priority)}
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
@@ -322,34 +354,40 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Customer Name</label>
-                  <input
-                    type="text"
-                    placeholder="Aditya Mehra"
-                    value={newCustomer}
-                    onChange={(e) => setNewCustomer(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+              <div>
+              <label className="block font-semibold text-slate-700 mb-1">Customer / Relocation *</label>
+              <select
+                required
+                value={selectedRelocationId ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRelocationError('');
+                  setSelectedRelocationId(value || null);
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">
+                  {relocations.length > 0 ? 'Select a customer relocation' : 'No relocations available'}
+                </option>
+                {relocations.map((relocation) => (
+                  <option key={relocation.id} value={relocation.id}>
+                    {relocation.customerName} — {relocation.id}
+                  </option>
+                ))}
+              </select>
+              {relocations.length === 0 && (
+                <p className="mt-1 text-[11px] text-rose-700">
+                  No relocation found. Create a relocation in the Relocation Pipeline first.
+                </p>
+              )}
+              {selectedRelocation && (
+                <div className="mt-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] text-indigo-900">
+                  <div className="font-semibold">{selectedRelocation.customerName} · {selectedRelocation.id}</div>
+                  <div>{selectedRelocation.fromCity} → {selectedRelocation.toCity} · Move date: {selectedRelocation.targetMoveDate}</div>
+                  {selectedRelocation.apartment?.societyName && <div>Society: {selectedRelocation.apartment.societyName}</div>}
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">City</label>
-                  <select
-                    value={newCity}
-                    onChange={(e) => setNewCity(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                  >
-                    <option>Bengaluru</option>
-                    <option>Pune</option>
-                    <option>Mumbai</option>
-                    <option>Delhi-NCR</option>
-                    <option>Hyderabad</option>
-                    <option>Chennai</option>
-                    <option>Ahmedabad</option>
-                    <option>Kolkata</option>
-                  </select>
-                </div>
+              )}
+              {relocationError && <p className="mt-1 text-[11px] text-rose-700">{relocationError}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -410,7 +448,7 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={resetNewTaskForm}
                   className="px-3 py-2 text-slate-600 hover:text-slate-800 rounded-lg font-medium"
                 >
                   Cancel

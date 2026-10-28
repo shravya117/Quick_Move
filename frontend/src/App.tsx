@@ -149,18 +149,22 @@ export const App: React.FC = () => {
     } catch (error) { reportError(error); }
   };
 
-  const handleAddTask = async (newTaskData: Omit<Task, 'id'>) => {
-    try {
-      const newTask = await api.createTask(newTaskData);
-      setTasks(prev => [newTask, ...prev]);
-    } catch (error) { reportError(error); }
+  const handleAddTask = async (newTaskData: Omit<Task, 'id'>): Promise<void> => {
+    const newTask = await api.createTask(newTaskData);
+    setTasks(prev => [newTask, ...prev]);
   };
 
-  const handleResolveIssue = async (issueId: string) => {
+  const handleResolveIssue = async (issueId: string, resolutionNotes: string) => {
     const issue = issues.find((item) => item.id === issueId);
     if (!issue) return;
     try {
-      const updated = await api.updateIssue({ ...issue, status: 'resolved' });
+      const updated = await api.updateIssue({
+        ...issue,
+        status: 'resolved',
+        resolutionNotes,
+        resolvedBy: issue.assignedTo,
+        resolvedAt: new Date().toISOString(),
+      });
       setIssues(prev => prev.map(item => item.id === issueId ? updated : item));
     } catch (error) { reportError(error); }
   };
@@ -174,11 +178,14 @@ export const App: React.FC = () => {
     } catch (error) { reportError(error); }
   };
 
-  const handleAddIssue = async (newIssueData: Omit<Issue, 'id'>) => {
+  const handleAddIssue = async (newIssueData: Omit<Issue, 'id'>): Promise<void> => {
     try {
       const newIssue = await api.createIssue(newIssueData);
       setIssues(prev => [newIssue, ...prev]);
-    } catch (error) { reportError(error); }
+    } catch (error) {
+      reportError(error);
+      throw error;
+    }
   };
 
   const handleUpdatePhase = async (moveId: string, newPhase: RelocationPhase) => {
@@ -372,6 +379,7 @@ export const App: React.FC = () => {
         {activeTab === 'tasks' && (
           <TaskCenter
             tasks={filteredTasks}
+            relocations={relocations}
             onToggleTask={handleToggleTask}
             onAddTask={handleAddTask}
             opsLeads={opsLeadNames}
@@ -384,6 +392,9 @@ export const App: React.FC = () => {
           <IssueBlockerBoard
             issues={filteredIssues}
             onResolveIssue={handleResolveIssue}
+            onCreateIssue={handleAddIssue}
+            relocations={relocations}
+            opsLeads={opsLeadNames}
             onReopenIssue={handleReopenIssue}
           />
         )}

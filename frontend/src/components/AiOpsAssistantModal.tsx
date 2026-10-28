@@ -11,7 +11,7 @@ import {
   PlusCircle,
   AlertTriangle
 } from 'lucide-react';
-import { Relocation, Task, Issue, City, TaskCategory } from '../types';
+import { Relocation, Task, Issue, City, TaskCategory, IssueCategory } from '../types';
 import { api } from '../utils/api';
 
 interface AiOpsAssistantModalProps {
@@ -115,6 +115,13 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
     if (!parsedResult || !parsedResult.targetRelocationId || !onAddIssue) return;
     if (!window.confirm('Confirm logging this AI-generated blocker?')) return;
 
+    const issueCategory: IssueCategory = parsedResult.category === 'society_gatepass'
+      || parsedResult.category === 'documentation'
+      || parsedResult.category === 'movers'
+      || parsedResult.category === 'utilities'
+      ? parsedResult.category
+      : 'other';
+
     onAddIssue({
       relocationId: parsedResult.targetRelocationId,
       customerName: parsedResult.customerMatched,
@@ -123,7 +130,7 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
       description: `Raw Message: "${rawMessageInput}"\n\nRoot Cause: ${parsedResult.rootCause}`,
       severity: parsedResult.severity,
       status: 'open',
-      category: parsedResult.category,
+      category: issueCategory,
       reportedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       assignedTo: relocations.find((relocation) => relocation.id === parsedResult.targetRelocationId)?.assignedOps || '',
       suggestedAiAction: parsedResult.actionPlan,

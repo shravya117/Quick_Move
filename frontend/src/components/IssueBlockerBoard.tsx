@@ -12,21 +12,38 @@ import {
   User,
   RotateCcw
 } from 'lucide-react';
-import { Issue, IssueSeverity } from '../types';
+import { Issue, IssueCategory, IssueSeverity, Relocation } from '../types';
 
 interface IssueBlockerBoardProps {
   issues: Issue[];
-  onResolveIssue: (issueId: string) => void;
+  onResolveIssue: (issueId: string, resolutionNotes: string) => void;
   onReopenIssue?: (issueId: string) => void;
+  onCreateIssue: (issue: Omit<Issue, 'id'>) => Promise<void>;
+  relocations: Relocation[];
+  opsLeads: string[];
 }
 
 export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
   issues,
   onResolveIssue,
   onReopenIssue,
+  onCreateIssue,
+  relocations,
+  opsLeads,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'active' | 'resolved'>('active');
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [selectedRelocationId, setSelectedRelocationId] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<IssueCategory>('society_gatepass');
+  const [severity, setSeverity] = useState<IssueSeverity>('medium');
+  const [reportedBy, setReportedBy] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [formError, setFormError] = useState('');
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -38,6 +55,7 @@ export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
   const resolvedIssues = issues.filter((i) => i.status === 'resolved');
 
   const displayedIssues = viewMode === 'active' ? activeIssues : resolvedIssues;
+  const selectedRelocation = relocations.find((item) => item.id === selectedRelocationId);
 
   const getSeverityPill = (sev: IssueSeverity) => {
     switch (sev) {
@@ -85,6 +103,17 @@ export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs font-semibold">
             <button
+              onClick={() => {
+                setFormError('');
+                setShowReportForm(true);
+                setReportedBy(opsLeads[0] || '');
+                setAssignedTo(opsLeads[0] || '');
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+            >
+              + Report Blocker
+            </button>
+            <button
               onClick={() => setViewMode('active')}
               className={`px-3 py-1 rounded-md transition-colors ${
                 viewMode === 'active' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -102,6 +131,99 @@ export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
             </button>
           </div>
         </div>
+
+        {showReportForm && (
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!selectedRelocation || !title.trim() || !description.trim() || !reportedBy || !assignedTo) {
+                setFormError('Select a relocation and complete all required fields.');
+                return;
+              }
+              try {
+                await onCreateIssue({
+                  relocationId: selectedRelocation.id,
+                  customerName: selectedRelocation.customerName,
+                  city: selectedRelocation.toCity,
+                  title: title.trim(),
+                  description: description.trim(),
+                  category,
+                  severity,
+                  status: 'open',
+                  reportedAt: new Date().toISOString(),
+                  reportedBy,
+                  assignedTo,
+                });
+                setShowReportForm(false);
+                setSelectedRelocationId('');
+                setTitle('');
+                setDescription('');
+                setFormError('');
+              } catch (error) {
+                setFormError(error instanceof Error ? error.message : 'Unable to report blocker');
+              }
+            }}
+            className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"
+          >
+            <div className="sm:col-span-2">
+              <label className="block font-semibold text-slate-700 mb-1">Related Relocation *</label>
+              <select required value={selectedRelocationId} onChange={(event) => setSelectedRelocationId(event.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="">Select customer — relocation ID</option>
+                {relocations.map((relocation) => (
+                  <option key={relocation.id} value={relocation.id}>
+                    {relocation.customerName} — {relocation.id}
+                  </option>
+                ))}
+              </select>
+              {selectedRelocation && <p className="mt-1 text-slate-500">{selectedRelocation.fromCity} → {selectedRelocation.toCity} · {selectedRelocation.targetMoveDate}</p>}
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Blocker Title *</label>
+              <input required value={title} onChange={(event) => setTitle(event.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white" />
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Category *</label>
+              <select value={category} onChange={(event) => setCategory(event.target.value as IssueCategory)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="society_gatepass">Society / Gate Pass</option>
+                <option value="documentation">Documentation</option>
+                <option value="movers">Packers & Movers</option>
+                <option value="utilities">Utilities</option>
+                <option value="transport_vehicle">Transport / Vehicle</option>
+                <option value="payment">Payment</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block font-semibold text-slate-700 mb-1">Description *</label>
+              <textarea required value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white" />
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Severity *</label>
+              <select value={severity} onChange={(event) => setSeverity(event.target.value as IssueSeverity)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Reported By *</label>
+              <select required value={reportedBy} onChange={(event) => setReportedBy(event.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="">Select reporter</option>
+                {opsLeads.map((lead) => <option key={lead} value={lead}>{lead}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Assigned To *</label>
+              <select required value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                <option value="">Select owner</option>
+                {opsLeads.map((lead) => <option key={lead} value={lead}>{lead}</option>)}
+              </select>
+            </div>
+            {formError && <p className="sm:col-span-2 text-rose-700">{formError}</p>}
+            <div className="sm:col-span-2 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowReportForm(false)} className="px-3 py-1.5 text-slate-600">Cancel</button>
+              <button type="submit" className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold">Save Blocker</button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Issues Grid / List */}
@@ -151,6 +273,11 @@ export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
                     {issue.assignedTo}
                   </span>
                 </div>
+              </div>
+              <div className="mb-3 flex flex-wrap gap-3 text-[11px] text-slate-600">
+                <span>Reported by: <strong>{issue.reportedBy || 'Not recorded'}</strong></span>
+                <span>Assigned to: <strong>{issue.assignedTo || 'Not assigned'}</strong></span>
+                <span>Reported at: <strong>{issue.reportedAt || 'Not recorded'}</strong></span>
               </div>
 
               {/* Issue Title & Description */}
@@ -214,13 +341,28 @@ export const IssueBlockerBoard: React.FC<IssueBlockerBoardProps> = ({
                     </button>
                   )
                 ) : (
-                  <button
-                    onClick={() => onResolveIssue(issue.id)}
-                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>Mark Issue Resolved</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setResolvingId(issue.id);
+                        setResolutionNotes('');
+                      }}
+                      className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Mark Issue Resolved</span>
+                    </button>
+                    {resolvingId === issue.id && (
+                      <div className="absolute right-5 bottom-14 z-10 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Resolution notes *</label>
+                        <textarea value={resolutionNotes} onChange={(event) => setResolutionNotes(event.target.value)} rows={3} className="w-full rounded border border-slate-300 p-2 text-xs" />
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button onClick={() => setResolvingId(null)} className="text-xs text-slate-600">Cancel</button>
+                          <button disabled={!resolutionNotes.trim()} onClick={() => { onResolveIssue(issue.id, resolutionNotes.trim()); setResolvingId(null); }} className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white disabled:opacity-50">Confirm</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

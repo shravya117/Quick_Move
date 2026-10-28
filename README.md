@@ -106,6 +106,7 @@ The platform coordinates the complete lifecycle of a relocation through five syn
 
 2. **Install project dependencies:**
    ```bash
+   cd frontend
    npm install
    ```
 
@@ -120,12 +121,14 @@ The platform coordinates the complete lifecycle of a relocation through five syn
 To compile and optimize the application for production:
 
 ```bash
+cd frontend
 npm run build
 ```
 
 To preview the production build locally:
 
 ```bash
+cd frontend
 npm run preview
 ```
 
@@ -135,23 +138,26 @@ npm run preview
 
 ```
 ├── public/                 # Static assets
-├── src/
-│   ├── components/         # Reusable UI components & modals
-│   │   ├── Navbar.tsx              # Top navigation & global city/lead filters
-│   │   ├── StatsCards.tsx          # Key performance metric overview cards
-│   │   ├── MovesTable.tsx          # Interactive pipeline table with search & filters
-│   │   ├── TaskCenter.tsx          # Task execution and milestone tracker
-│   │   ├── IssueBlockerBoard.tsx   # Critical blocker and failure tracker
-│   │   ├── MoveDetailModal.tsx     # Comprehensive deep-dive drawer per move
-│   │   ├── AiOpsAssistantModal.tsx # AI operations co-pilot & message parser
-│   │   ├── NewMoveModal.tsx        # New customer move intake form
-│   │   ├── EditMoveModal.tsx       # Move record editing modal
-│   │   └── DeleteConfirmModal.tsx  # Safety confirmation dialog for deletion
-│   ├── data/               # Default pipeline and demonstration datasets
-│   ├── types/              # TypeScript interfaces and domain models
-│   ├── utils/              # Storage management and helper utilities
-│   ├── App.tsx             # Root dashboard container and state orchestration
-│   └── main.tsx            # Application entry point
-├── package.json
-└── vite.config.ts
+├── frontend/
+│   ├── src/
+│   │   ├── components/         # Reusable UI components & modals
+│   │   │   ├── Navbar.tsx              # Top navigation & global city/lead filters
+│   │   │   ├── StatsCards.tsx          # Key performance metric overview cards
+│   │   │   ├── MovesTable.tsx          # Interactive pipeline table with search & filters
+│   │   │   ├── TaskCenter.tsx          # Task execution and milestone tracker
+│   │   │   ├── IssueBlockerBoard.tsx   # Critical blocker and failure tracker
+│   │   │   ├── MoveDetailModal.tsx     # Comprehensive deep-dive drawer per move
+│   │   │   ├── AiOpsAssistantModal.tsx # AI operations co-pilot & message parser
+│   │   │   ├── NewMoveModal.tsx        # New customer move intake form
+│   │   │   ├── EditMoveModal.tsx       # Move record editing modal
+│   │   │   └── DeleteConfirmModal.tsx  # Safety confirmation dialog for deletion
+│   │   ├── data/               # Default pipeline and demonstration datasets
+│   │   ├── types/              # TypeScript interfaces and domain models
+│   │   ├── utils/              # Storage management and helper utilities
+│   │   ├── App.tsx             # Root dashboard container and state orchestration
+│   │   └── main.tsx            # Application entry point
+│   ├── package.json
+│   └── vite.config.ts
+├── backend/
+└── README.md
 ```

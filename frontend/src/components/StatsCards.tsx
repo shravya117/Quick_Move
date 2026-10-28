@@ -14,6 +14,7 @@ interface StatsCardsProps {
   pendingTasksCount: number;
   overdueTasksCount: number;
   criticalIssuesCount: number;
+  opsLeadCount: number;
   activeTab: 'moves' | 'tasks' | 'issues';
   setActiveTab: (tab: 'moves' | 'tasks' | 'issues') => void;
   setTaskFilter?: (filter: 'all' | 'overdue' | 'today' | 'completed') => void;
@@ -24,6 +25,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   pendingTasksCount,
   overdueTasksCount,
   criticalIssuesCount,
+  opsLeadCount,
   activeTab,
   setActiveTab,
   setTaskFilter,
@@ -72,7 +74,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
             <Clock className="w-5 h-5" />
           </div>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-            Across 5 Ops Leads
+            Across {opsLeadCount} Ops Leads
           </span>
         </div>
         <div className="text-2xl font-bold text-slate-900 tracking-tight">{pendingTasksCount}</div>

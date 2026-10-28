@@ -72,13 +72,35 @@ export const MoveDetailModal: React.FC<MoveDetailModalProps> = ({
   ];
 
   const hasNonHub = !isSupportedCity(move.fromCity) || !isSupportedCity(move.toCity);
+  const providerAssignment = move.providerAssignment;
+  const recordedProviderName = providerAssignment?.providerName
+    || move.movers?.vendorName;
+  const hasAssignedProvider = Boolean(
+    providerAssignment?.providerId || providerAssignment?.providerName
+  ) && recordedProviderName?.trim().toLowerCase() !== 'unassigned';
+  const isConfirmedAssignment = providerAssignment?.assignmentStatus === 'confirmed'
+    && providerAssignment?.availabilityStatus === 'available';
+  const hasUnavailableProvider = providerAssignment?.availabilityStatus === 'unavailable';
+  const isAvailabilityVerified = providerAssignment?.availabilityStatus === 'available';
+  const providerBookingLabel = !hasAssignedProvider
+    ? 'Unassigned'
+    : isConfirmedAssignment
+      ? 'Confirmed'
+      : 'Pending verification';
+  const providerAvailabilityLabel = !hasAssignedProvider
+    ? 'Not verified'
+    : hasUnavailableProvider
+      ? 'Unavailable'
+      : isAvailabilityVerified
+        ? 'Available'
+        : 'Not verified';
 
   // Pre-generated AI WhatsApp Messages tailored to this customer
   const whatsappMessages = [
     {
       target: 'Customer Update',
       recipient: move.customerName,
-      text: `Hello ${move.customerName}, this is ${move.assignedOps} from QuickMove. Your relocation to ${move.toCity} is in the "${move.currentPhase}" phase. Target moving date is ${move.targetMoveDate}. Assigned logistics partner: ${move.movers?.vendorName || 'SafePack Logistics'} (${move.movers?.slotTime || 'Morning Slot'}). Please let us know if you need anything addressed today!`
+      text: `Hello ${move.customerName}, this is ${move.assignedOps} from QuickMove. Your relocation to ${move.toCity} is in the "${move.currentPhase}" phase. Target moving date is ${move.targetMoveDate}. Logistics partner: ${recordedProviderName || 'Not assigned'} (${move.movers?.slotTime || 'Time to be confirmed'}). Please let us know if you need anything addressed today!`
     },
     {
       target: 'Society / Estate Manager Notice',
@@ -87,8 +109,8 @@ export const MoveDetailModal: React.FC<MoveDetailModalProps> = ({
     },
     {
       target: 'Logistics Vendor Dispatch',
-      recipient: `${move.movers?.vendorName || 'Logistics Partner'}`,
-      text: `URGENT - Dispatch order for ${move.customerName} (${move.id}) to ${move.apartment?.societyName || 'Society'}, ${move.apartment?.locality || 'Locality'}, ${move.toCity}. Scheduled slot: ${move.movers?.slotTime || 'Morning Slot'}. Driver must carry QuickMove Society Gate Pass copy.`
+      recipient: `${recordedProviderName || 'Logistics Partner'}`,
+      text: `Dispatch details for ${move.customerName} (${move.id}) to ${move.apartment?.societyName || 'Society'}, ${move.apartment?.locality || 'Locality'}, ${move.toCity}. Scheduled slot: ${move.movers?.slotTime || 'Time to be confirmed'}. Confirm the provider booking and vehicle before dispatch.`
     }
   ];
 
@@ -306,24 +328,44 @@ export const MoveDetailModal: React.FC<MoveDetailModalProps> = ({
                   <div className="space-y-2 text-slate-700">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Vendor:</span>
-                      <span className="font-semibold">{move.movers?.vendorName || 'Not Assigned'}</span>
+                      <span className="font-semibold">{recordedProviderName || 'Not Assigned'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Vendor Contact:</span>
-                      <span className="font-semibold">{move.movers?.vendorPhone || 'Pending allocation'}</span>
+                      <span className="font-semibold">{providerAssignment?.providerPhone || move.movers?.vendorPhone || 'Not recorded'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Transit Status:</span>
-                      <span className="font-semibold text-blue-700">{move.movers?.status || 'Unassigned'}</span>
+                      <span className="text-slate-500">Booking Status:</span>
+                      <span className={`font-semibold ${
+                        providerBookingLabel === 'Confirmed' ? 'text-emerald-700' :
+                        providerBookingLabel === 'Pending verification' ? 'text-amber-700' : 'text-slate-500'
+                      }`}>{providerBookingLabel}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Vehicle Type:</span>
-                      <span className="font-semibold text-[11px]">{move.movers?.vehicleType || 'Standard Container'}</span>
+                      <span className="font-semibold text-[11px]">{providerAssignment?.vehicleType || move.movers?.vehicleType || 'Not assigned'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Slot Window:</span>
                       <span className="font-semibold">{move.movers?.slotTime || 'TBD'}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Availability:</span>
+                      <span className={`font-semibold ${
+                        providerAvailabilityLabel === 'Available' ? 'text-emerald-700' : 'text-amber-700'
+                      }`}>{providerAvailabilityLabel}</span>
+                    </div>
+                    {providerAssignment?.assignedJobs !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Assigned Jobs:</span>
+                        <span className="font-semibold">{providerAssignment.assignedJobs}</span>
+                      </div>
+                    )}
+                    {!isConfirmedAssignment && hasAssignedProvider && (
+                      <p className="mt-2 text-[11px] text-amber-800 bg-amber-50 p-2 rounded border border-amber-200">
+                        Provider details are recorded, but booking and capacity have not been confirmed by the backend.
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   AlertTriangle, 
   Calendar, 
@@ -16,6 +16,7 @@ interface TaskCenterProps {
   onAddTask: (task: Omit<Task, 'id'>) => void;
   taskFilter: 'all' | 'overdue' | 'today' | 'completed';
   setTaskFilter: (filter: 'all' | 'overdue' | 'today' | 'completed') => void;
+  opsLeads: string[];
 }
 
 export const TaskCenter: React.FC<TaskCenterProps> = ({
@@ -24,6 +25,7 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
   onAddTask,
   taskFilter,
   setTaskFilter,
+  opsLeads,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [taskSearch, setTaskSearch] = useState('');
@@ -36,7 +38,13 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
   const [newCategory, setNewCategory] = useState<TaskCategory>('society_gatepass');
   const [newPriority, setNewPriority] = useState<TaskPriority>('high');
   const [newDueDate, setNewDueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newAssignedTo, setNewAssignedTo] = useState('Priya Sharma');
+  const [newAssignedTo, setNewAssignedTo] = useState('');
+
+  useEffect(() => {
+    if (opsLeads.length > 0 && !opsLeads.includes(newAssignedTo)) {
+      setNewAssignedTo(opsLeads[0]);
+    }
+  }, [newAssignedTo, opsLeads]);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -392,11 +400,9 @@ export const TaskCenter: React.FC<TaskCenterProps> = ({
                     onChange={(e) => setNewAssignedTo(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    <option>Priya Sharma</option>
-                    <option>Rahul Verma</option>
-                    <option>Sneha Kulkarni</option>
-                    <option>Amit Roy</option>
-                    <option>Vikram Nair</option>
+                    {opsLeads.map((lead) => (
+                      <option key={lead} value={lead}>{lead}</option>
+                    ))}
                   </select>
                 </div>
               </div>

@@ -102,7 +102,7 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
       dueDate: new Date().toISOString().split('T')[0],
       status: 'pending',
       priority: parsedResult.severity === 'critical' ? 'critical' : 'high',
-      assignedTo: 'Priya Sharma',
+      assignedTo: relocations.find((relocation) => relocation.id === parsedResult.targetRelocationId)?.assignedOps || '',
       notes: parsedResult.actionPlan,
       blockerReason: parsedResult.rootCause
     });
@@ -125,7 +125,7 @@ export const AiOpsAssistantModal: React.FC<AiOpsAssistantModalProps> = ({
       status: 'open',
       category: parsedResult.category,
       reportedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      assignedTo: 'Priya Sharma',
+      assignedTo: relocations.find((relocation) => relocation.id === parsedResult.targetRelocationId)?.assignedOps || '',
       suggestedAiAction: parsedResult.actionPlan,
       suggestedWhatsAppMsg: parsedResult.draftResponse
     });

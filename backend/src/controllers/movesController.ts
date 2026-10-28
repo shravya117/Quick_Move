@@ -2,11 +2,33 @@ import { Request, Response } from 'express';
 import { supabase } from '../services/supabase';
 import { Move } from '../types';
 
-const toRelocation = (row: Record<string, any>): Record<string, any> => ({
-  ...(row.payload ?? {}),
-  id: row.id,
-  currentPhase: row.current_phase ?? row.payload?.currentPhase ?? 'Apartment Shortlist',
-});
+const toRelocation = (row: Record<string, any>): Record<string, any> => {
+  const payload = row.payload ?? {};
+  const persistedAssignment = payload.providerAssignment ?? {};
+  const hasProviderAssignment = Boolean(
+    row.provider_id ||
+    persistedAssignment.providerId ||
+    persistedAssignment.providerName
+  );
+
+  return {
+    ...payload,
+    id: row.id,
+    currentPhase: row.current_phase ?? payload.currentPhase ?? 'Apartment Shortlist',
+    ...(hasProviderAssignment
+      ? {
+          providerAssignment: {
+            ...persistedAssignment,
+            ...(row.provider_id ? { providerId: row.provider_id } : {}),
+            ...(row.assignment_status ? { assignmentStatus: row.assignment_status } : {}),
+            ...(row.ops_confirmation_status === 'confirmed'
+              ? { assignmentStatus: 'confirmed' }
+              : {}),
+          },
+        }
+      : {}),
+  };
+};
 
 // GET /api/moves
 export const getMoves = async (_req: Request, res: Response): Promise<void> => {

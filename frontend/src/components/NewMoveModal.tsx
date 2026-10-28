@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import { Relocation, SUPPORTED_CITIES, isSupportedCity } from '../types';
+import { Relocation, SUPPORTED_CITIES, isSupportedCity, normalizeCity } from '../types';
 
 interface NewMoveModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddRelocation: (relocation: Relocation) => void;
+  opsLeads: string[];
 }
 
 export const NewMoveModal: React.FC<NewMoveModalProps> = ({
   isOpen,
   onClose,
   onAddRelocation,
+  opsLeads,
 }) => {
   if (!isOpen) return null;
 
@@ -28,14 +30,18 @@ export const NewMoveModal: React.FC<NewMoveModalProps> = ({
   const [customDest, setCustomDest] = useState<string>('');
 
   const [targetMoveDate, setTargetMoveDate] = useState('2026-11-05');
-  const [assignedOps, setAssignedOps] = useState('Priya Sharma');
+  const [assignedOps, setAssignedOps] = useState(opsLeads[0] || '');
   const [societyName, setSocietyName] = useState('');
   const [flatNumber, setFlatNumber] = useState('');
   const [vendorName, setVendorName] = useState('SafePack Express');
   const [vehicleType, setVehicleType] = useState('14ft Container Truck');
 
-  const resolvedOrigin = originSelect === 'OTHER' ? (customOrigin.trim() || 'Other') : originSelect;
-  const resolvedDest = destSelect === 'OTHER' ? (customDest.trim() || 'Other') : destSelect;
+  useEffect(() => {
+    if (!assignedOps && opsLeads.length > 0) setAssignedOps(opsLeads[0]);
+  }, [assignedOps, opsLeads]);
+
+  const resolvedOrigin = normalizeCity(originSelect === 'OTHER' ? (customOrigin.trim() || 'Other') : originSelect);
+  const resolvedDest = normalizeCity(destSelect === 'OTHER' ? (customDest.trim() || 'Other') : destSelect);
 
   const isOriginUnsupported = resolvedOrigin && !isSupportedCity(resolvedOrigin);
   const isDestUnsupported = resolvedDest && !isSupportedCity(resolvedDest);
@@ -242,11 +248,9 @@ export const NewMoveModal: React.FC<NewMoveModalProps> = ({
                 onChange={(e) => setAssignedOps(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
               >
-                <option>Priya Sharma</option>
-                <option>Rahul Verma</option>
-                <option>Sneha Kulkarni</option>
-                <option>Amit Roy</option>
-                <option>Vikram Nair</option>
+                {opsLeads.map((lead) => (
+                  <option key={lead} value={lead}>{lead}</option>
+                ))}
               </select>
             </div>
           </div>

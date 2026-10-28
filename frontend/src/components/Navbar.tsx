@@ -6,7 +6,7 @@ import {
   Users,
   ShieldAlert
 } from 'lucide-react';
-import { City, OpsMember, SUPPORTED_CITIES } from '../types';
+import { City, OpsMember, SUPPORTED_CITIES, isSupportedCity } from '../types';
 
 interface NavbarProps {
   selectedCity: City | 'All';
@@ -39,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const cities: (City | 'All')[] = [
     'All',
     ...SUPPORTED_CITIES,
-    ...customCities.filter(c => !(SUPPORTED_CITIES as readonly string[]).includes(c))
+    ...customCities.filter(c => !isSupportedCity(c))
   ];
 
   return (

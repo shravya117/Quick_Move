@@ -12,8 +12,27 @@ export const SUPPORTED_CITIES = [
 export type SupportedCity = (typeof SUPPORTED_CITIES)[number];
 export type City = SupportedCity | string;
 
+const CITY_ALIASES: Record<string, SupportedCity> = {
+  bengaluru: 'Bengaluru',
+  bangalore: 'Bengaluru',
+  pune: 'Pune',
+  mumbai: 'Mumbai',
+  delhi: 'Delhi-NCR',
+  'delhi ncr': 'Delhi-NCR',
+  'delhi-ncr': 'Delhi-NCR',
+  hyderabad: 'Hyderabad',
+  chennai: 'Chennai',
+  kolkata: 'Kolkata',
+  ahmedabad: 'Ahmedabad',
+};
+
+export const normalizeCity = (city: string): string => {
+  const normalized = city.trim().toLowerCase().replace(/\s+/g, ' ');
+  return CITY_ALIASES[normalized] ?? city.trim();
+};
+
 export const isSupportedCity = (city: string): boolean => {
-  return (SUPPORTED_CITIES as readonly string[]).includes(city as SupportedCity);
+  return (SUPPORTED_CITIES as readonly string[]).includes(normalizeCity(city));
 };
 
 export type RelocationPhase = 
@@ -34,6 +53,18 @@ export type TaskCategory =
   | 'documentation' 
   | 'society_gatepass' 
   | 'post_move';
+
+export type ProviderAssignmentStatus =
+  | 'unassigned'
+  | 'pending_confirmation'
+  | 'confirmed'
+  | 'conflict'
+  | 'cancelled';
+
+export type ProviderAvailabilityStatus =
+  | 'available'
+  | 'unavailable'
+  | 'not_verified';
 
 export interface Task {
   id: string;
@@ -79,6 +110,17 @@ export interface Relocation {
   currentPhase: RelocationPhase;
   targetMoveDate: string;
   assignedOps: string;
+  providerAssignment?: {
+    providerId?: string;
+    providerName?: string;
+    providerPhone?: string;
+    providerEmail?: string;
+    assignmentStatus?: ProviderAssignmentStatus;
+    availabilityStatus?: ProviderAvailabilityStatus;
+    assignedJobs?: number;
+    vehicleId?: string;
+    vehicleType?: string;
+  };
   apartment: {
     societyName: string;
     flatNumber: string;

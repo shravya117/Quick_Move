@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Save } from 'lucide-react';
-import { Relocation, RelocationPhase, SUPPORTED_CITIES, isSupportedCity, SupportedCity } from '../types';
+import { Relocation, RelocationPhase, SUPPORTED_CITIES, isSupportedCity, normalizeCity } from '../types';
 
 interface EditMoveModalProps {
   isOpen: boolean;
   onClose: () => void;
   move: Relocation | null;
   onSave: (updatedMove: Relocation) => void;
+  opsLeads: string[];
 }
 
 export const EditMoveModal: React.FC<EditMoveModalProps> = ({
@@ -14,6 +15,7 @@ export const EditMoveModal: React.FC<EditMoveModalProps> = ({
   onClose,
   move,
   onSave,
+  opsLeads,
 }) => {
   if (!isOpen || !move) return null;
 
@@ -58,8 +60,8 @@ export const EditMoveModal: React.FC<EditMoveModalProps> = ({
   const [riskScore, setRiskScore] = useState<'Low' | 'Medium' | 'High'>(move.riskScore);
   const [riskReason, setRiskReason] = useState(move.riskReason || '');
 
-  const resolvedOrigin = originSelect === 'OTHER' ? (customOrigin.trim() || 'Other') : originSelect;
-  const resolvedDest = destSelect === 'OTHER' ? (customDest.trim() || 'Other') : destSelect;
+  const resolvedOrigin = normalizeCity(originSelect === 'OTHER' ? (customOrigin.trim() || 'Other') : originSelect);
+  const resolvedDest = normalizeCity(destSelect === 'OTHER' ? (customDest.trim() || 'Other') : destSelect);
 
   const isOriginUnsupported = resolvedOrigin && !isSupportedCity(resolvedOrigin);
   const isDestUnsupported = resolvedDest && !isSupportedCity(resolvedDest);
@@ -273,11 +275,9 @@ export const EditMoveModal: React.FC<EditMoveModalProps> = ({
                 onChange={(e) => setAssignedOps(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
               >
-                <option>Priya Sharma</option>
-                <option>Rahul Verma</option>
-                <option>Sneha Kulkarni</option>
-                <option>Amit Roy</option>
-                <option>Vikram Nair</option>
+                {Array.from(new Set([assignedOps, ...opsLeads].filter(Boolean))).map((lead) => (
+                  <option key={lead} value={lead}>{lead}</option>
+                ))}
               </select>
             </div>
           </div>

@@ -16,7 +16,7 @@ import { NewMoveModal } from './components/NewMoveModal';
 import { EditMoveModal } from './components/EditMoveModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 
-import { City, Relocation, Task, Issue, RelocationPhase, SUPPORTED_CITIES, OpsMember } from './types';
+import { City, Relocation, Task, Issue, RelocationPhase, isSupportedCity, OpsMember } from './types';
 import { api } from './utils/api';
 
 export const App: React.FC = () => {
@@ -41,8 +41,22 @@ export const App: React.FC = () => {
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isNewMoveOpen, setIsNewMoveOpen] = useState(false);
 
+  const opsLeadNames = useMemo(() => {
+    const names = new Set<string>();
+    relocations.forEach((move) => {
+      if (move.assignedOps) names.add(move.assignedOps);
+    });
+    tasks.forEach((task) => {
+      if (task.assignedTo) names.add(task.assignedTo);
+    });
+    issues.forEach((issue) => {
+      if (issue.assignedTo) names.add(issue.assignedTo);
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [issues, relocations, tasks]);
+
   const opsTeam = useMemo<OpsMember[]>(() => {
-    const names = new Set(relocations.map((move) => move.assignedOps).filter(Boolean));
+    const names = opsLeadNames;
     return Array.from(names).map((name) => ({
       id: name,
       name,
@@ -50,7 +64,7 @@ export const App: React.FC = () => {
       phone: '',
       cities: Array.from(new Set(relocations.filter((move) => move.assignedOps === name).map((move) => move.toCity))),
     }));
-  }, [relocations]);
+  }, [opsLeadNames, relocations]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -89,11 +103,11 @@ export const App: React.FC = () => {
     return counts;
   }, [opsTeam, relocations]);
 
-  // Extract any unique non-hub cities present in active moves
+  // Keep the city filter limited to genuine non-hub locations.
   const customCities = useMemo(() => {
     const set = new Set<string>();
     relocations.forEach(m => {
-      if (!(SUPPORTED_CITIES as readonly string[]).includes(m.toCity)) {
+      if (!isSupportedCity(m.toCity)) {
         set.add(m.toCity);
       }
     });
@@ -257,7 +271,7 @@ export const App: React.FC = () => {
                 Live Ops Control
               </span>
               <span className="text-xs text-slate-400">
-                {selectedCity === 'All' ? 'All Hubs & Cities' : `${selectedCity} Area`} · {selectedOps === 'All' ? 'All 5 Coordinators' : selectedOps}
+                {selectedCity === 'All' ? 'All Hubs & Cities' : `${selectedCity} Area`} · {selectedOps === 'All' ? `All ${opsLeadNames.length} Coordinators` : selectedOps}
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
@@ -286,6 +300,7 @@ export const App: React.FC = () => {
           pendingTasksCount={pendingTasksCount}
           overdueTasksCount={overdueTasksCount}
           criticalIssuesCount={criticalIssuesCount}
+          opsLeadCount={opsLeadNames.length}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           setTaskFilter={setTaskFilter}
@@ -359,6 +374,7 @@ export const App: React.FC = () => {
             tasks={filteredTasks}
             onToggleTask={handleToggleTask}
             onAddTask={handleAddTask}
+            opsLeads={opsLeadNames}
             taskFilter={taskFilter}
             setTaskFilter={setTaskFilter}
           />
@@ -380,11 +396,11 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span className="font-semibold text-slate-700">QuickMove AI Ops Hub v1.0</span>
-            <span>· Built for 5 On-Ground Ops Leads across 8 Core Hubs</span>
+            <span>· {opsLeadNames.length} active Ops Leads across 8 Core Hubs</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
-            <span>Local Storage Active</span>
-            <span>Zero Engineering Dependency</span>
+            <span>Backend persistence active</span>
+            <span>Supabase-backed operations</span>
           </div>
         </div>
       </footer>
@@ -412,6 +428,7 @@ export const App: React.FC = () => {
         isOpen={isNewMoveOpen}
         onClose={() => setIsNewMoveOpen(false)}
         onAddRelocation={handleAddRelocation}
+        opsLeads={opsLeadNames}
       />
 
       <EditMoveModal
@@ -419,6 +436,7 @@ export const App: React.FC = () => {
         move={editingMove}
         onClose={() => setEditingMove(null)}
         onSave={handleUpdateRelocation}
+        opsLeads={opsLeadNames}
       />
 
       <DeleteConfirmModal

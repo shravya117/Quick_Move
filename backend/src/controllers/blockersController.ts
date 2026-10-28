@@ -10,7 +10,16 @@ export const getBlockers = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: error.message });
     return;
   }
-  res.json(data ?? []);
+  res.json((data ?? []).map((row: Record<string, any>) => ({
+    ...(row.payload ?? {}),
+    id: row.id,
+    relocationId: row.move_id,
+    title: row.title,
+    description: row.description,
+    severity: row.severity,
+    status: row.status,
+    assignedTo: row.assigned_to,
+  })));
 };
 
 export const createBlocker = async (req: Request, res: Response): Promise<void> => {
@@ -48,7 +57,11 @@ export const updateBlocker = async (req: Request, res: Response): Promise<void> 
 
   const payload = { ...(current.payload ?? {}), ...req.body, id };
   const { data, error } = await supabase.from('blockers').update({
+    title: payload.title ?? current.title,
+    description: payload.description ?? current.description,
+    severity: payload.severity ?? current.severity,
     status: payload.status ?? current.status,
+    assigned_to: payload.assignedTo ?? payload.assigned_to ?? current.assigned_to,
     payload,
   }).eq('id', id).select().single();
   if (error) {

@@ -34,6 +34,16 @@ export const parseOperationsMessage = async (req: Request, res: Response): Promi
     if (parsed.targetRelocationId != null && !relocationIds.has(String(parsed.targetRelocationId))) {
       parsed.targetRelocationId = null;
     }
+    const matchedRelocation = (relocations ?? []).find((relocation) =>
+      relocation && typeof relocation === 'object' &&
+      String((relocation as { id?: unknown }).id) === String(parsed.targetRelocationId),
+    ) as { customerName?: unknown; toCity?: unknown } | undefined;
+    parsed.customerMatched = typeof parsed.customerMatched === 'string'
+      ? parsed.customerMatched
+      : String(matchedRelocation?.customerName ?? '');
+    parsed.city = typeof parsed.city === 'string'
+      ? parsed.city
+      : String(matchedRelocation?.toCity ?? '');
     if (typeof parsed.rootCause !== 'string' || typeof parsed.actionPlan !== 'string' ||
       typeof parsed.draftResponse !== 'string' || !allowedCategories.has(String(parsed.category)) ||
       !allowedSeverities.has(String(parsed.severity))) {
@@ -43,6 +53,11 @@ export const parseOperationsMessage = async (req: Request, res: Response): Promi
     res.json({ ...parsed, targetRelocationId: parsed.targetRelocationId ?? null });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'AI service unavailable';
-    res.status(502).json({ error: message });
+    const isModelError = message.includes('model_not_found') || message.includes('does not exist') || message.includes('do not have access');
+    res.status(502).json({
+      error: isModelError
+        ? `Groq model "${GROQ_MODEL}" is unavailable. Set GROQ_MODEL in backend/.env to an enabled Groq model.`
+        : message,
+    });
   }
 };

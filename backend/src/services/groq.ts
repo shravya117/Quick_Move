@@ -9,7 +9,7 @@ if (!process.env.GROQ_API_KEY) {
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-export const GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
 // System prompt giving the AI context about QuickMove
 export const SYSTEM_PROMPT = `You are QuickMove AI Co-Pilot, an intelligent operations assistant for QuickMove — a B2B relocation logistics company. 
